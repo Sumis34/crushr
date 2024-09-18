@@ -6,24 +6,46 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { BarChart2, ImageIcon, Upload, Zap } from "lucide-react";
 import { useState } from "react";
+import imageCompression, { Options } from "browser-image-compression";
+
+const options: Options = {
+  maxWidthOrHeight: 1920,
+  useWebWorker: true,
+  fileType: "image/webp",
+};
 
 export default function Home() {
   const [selectedCompression, setSelectedCompression] = useState("balanced");
   const [selectedResolution, setSelectedResolution] = useState("original");
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [file, setFile] = useState<File | null>(null);
   const [compressionRate, setCompressionRate] = useState<number | null>(null);
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
+
     if (file) {
+      setFile(file);
       const reader = new FileReader();
       reader.onload = (e) => setUploadedImage(e.target?.result as string);
       reader.readAsDataURL(file);
     }
   };
 
-  const handleCompression = () => {
+  const handleCompression = async () => {
     // Simulating compression rate calculation
+
+    if (!file) return;
+
+    const compressedFile = await imageCompression(file, options);
+
+    // Download image
+    const downloadUrl = URL.createObjectURL(compressedFile);
+    const a = document.createElement("a");
+    a.href = downloadUrl;
+    a.download = "compressed-image.webp";
+    a.click();
+
     const rate = Math.floor(Math.random() * 50) + 30; // Random number between 30-80%
     setCompressionRate(rate);
   };
