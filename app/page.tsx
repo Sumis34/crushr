@@ -3,9 +3,10 @@
 import { useState, useRef, ChangeEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Progress } from "@/components/ui/progress";
-import { Upload, Download, Image as ImageIcon, X, Check } from "lucide-react";
+import { Upload, Download, Check } from "lucide-react";
+import { Slider } from "@/components/ui/slider";
+import { useTheme } from "next-themes";
+import { Input } from "@/components/ui/input";
 
 const resolutions = [
   { name: "4K", dimensions: "3840 x 2160", value: "4k", aspectRatio: "16/9" },
@@ -22,12 +23,6 @@ const resolutions = [
     aspectRatio: "16/9",
   },
   { name: "480p", dimensions: "854 x 480", value: "480p", aspectRatio: "16/9" },
-];
-
-const compressionRatios = [
-  { value: "low", label: "High Compression (Low Quality)" },
-  { value: "medium", label: "Balanced" },
-  { value: "high", label: "Low Compression (High Quality)" },
 ];
 
 const outputFormats = [
@@ -47,10 +42,23 @@ interface ImageFile {
 export default function Component() {
   const [images, setImages] = useState<ImageFile[]>([]);
   const [selectedResolutions, setSelectedResolutions] = useState(["1080p"]);
-  const [selectedQualities, setSelectedQualities] = useState(["medium"]);
+  const [selectedQualities] = useState(["medium"]);
   const [selectedFormats, setSelectedFormats] = useState(["image/jpeg"]);
-  const [showCompressed, setShowCompressed] = useState(false);
+  const [compressionQuality, setCompressionQuality] = useState(50);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const { setTheme, theme } = useTheme();
+
+  const getCompressionTip = (quality: number) => {
+    if (quality < 25) {
+      return "High compression, significant quality loss. Best for very small file sizes, but not recommended for most uses.";
+    } else if (quality < 50) {
+      return "Medium-high compression. Good for web graphics where some quality loss is acceptable.";
+    } else if (quality < 75) {
+      return "Balanced compression. Good for most web uses, offering a good balance between file size and quality.";
+    } else {
+      return "Low compression, high quality. Best for images where detail is important, but results in larger file sizes.";
+    }
+  };
 
   const handleImageUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -62,10 +70,6 @@ export default function Component() {
       compressionRatio: 0,
     }));
     setImages((prev) => [...prev, ...newImages]);
-  };
-
-  const removeImage = (id: string) => {
-    setImages((prev) => prev.filter((img) => img.id !== id));
   };
 
   const compressImages = async () => {
@@ -109,7 +113,6 @@ export default function Component() {
     );
 
     setImages(compressedImages);
-    setShowCompressed(true);
   };
 
   const compressImage = (
@@ -191,84 +194,8 @@ export default function Component() {
   };
 
   return (
-    <div className="flex h-screen bg-gray-100">
-      <div className="flex-1 p-6 flex flex-col">
-        <div className="flex justify-between items-center mb-4">
-          <h1 className="text-2xl font-bold">Image Compressor</h1>
-          <div className="flex items-center space-x-2">
-            <Label htmlFor="show-compressed">Show compressed</Label>
-            <Switch
-              id="show-compressed"
-              checked={showCompressed}
-              onCheckedChange={setShowCompressed}
-            />
-          </div>
-        </div>
-        <div className="flex-1 border-2 border-dashed border-gray-300 rounded-lg p-4 overflow-y-auto">
-          {images.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {images.map((img) => (
-                <div key={img.id} className="relative group">
-                  {showCompressed && Object.keys(img.compressed).length > 0 ? (
-                    <img
-                      src={Object.values(img.compressed)[0]}
-                      alt="Compressed"
-                      className="w-full h-40 object-cover rounded-lg"
-                    />
-                  ) : (
-                    <img
-                      src={img.preview}
-                      alt="Original"
-                      className="w-full h-40 object-cover rounded-lg"
-                    />
-                  )}
-                  <button
-                    onClick={() => removeImage(img.id)}
-                    className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <X size={16} />
-                  </button>
-                  {img.compressionRatio > 0 && (
-                    <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white p-2">
-                      <div className="text-xs mb-1">
-                        Compression: {img.compressionRatio.toFixed(2)}%
-                      </div>
-                      <Progress value={img.compressionRatio} className="h-1" />
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="h-full flex items-center justify-center">
-              <div className="text-center">
-                <ImageIcon className="mx-auto h-12 w-12 text-gray-400" />
-                <p className="mt-1 text-sm text-gray-600">
-                  Upload images to start
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
-        <div className="mt-4">
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleImageUpload}
-            className="hidden"
-            id="image-upload"
-            multiple
-          />
-          <label htmlFor="image-upload">
-            <Button asChild className="w-full">
-              <span>
-                <Upload className="mr-2 h-4 w-4" /> Upload Images
-              </span>
-            </Button>
-          </label>
-        </div>
-      </div>
-      <div className="w-96 bg-white p-6 shadow-lg flex flex-col overflow-y-auto">
+    <div className="flex h-screen">
+      <div className="w-96 bg-background p-6 shadow-lg flex flex-col overflow-y-auto border">
         <h2 className="text-xl font-semibold mb-4">Compression Options</h2>
         <div className="mb-6">
           <Label className="text-base mb-2 block">Resolutions</Label>
@@ -285,23 +212,21 @@ export default function Component() {
                 }
                 className={`relative overflow-hidden rounded-lg border-2 transition-colors ${
                   selectedResolutions.includes(value)
-                    ? "border-primary bg-primary/10"
-                    : "border-gray-200 hover:border-gray-300"
+                    ? "border-primary"
+                    : "border-border"
                 }`}
               >
-                <div className="aspect-[16/9] w-full bg-gray-100 flex items-center justify-center">
+                <div className="aspect-[16/9] w-full bg-gray-100 dark:bg-neutral-900 flex items-center justify-center">
                   <div
-                    className="bg-gray-300"
+                    className="bg-gray-300 dark:bg-neutral-600 w-[70%] h-[70%] rounded-[5px]"
                     style={{
-                      width: "80%",
-                      height: "80%",
                       aspectRatio: aspectRatio,
                     }}
                   ></div>
                 </div>
                 <div className="p-2 text-center">
                   <span className="font-medium">{name}</span>
-                  <span className="text-xs text-gray-500 block">
+                  <span className="text-xs text-muted-foreground block">
                     {dimensions}
                   </span>
                 </div>
@@ -316,26 +241,25 @@ export default function Component() {
         </div>
         <div className="mb-6">
           <Label className="text-base mb-2 block">Compression Ratios</Label>
-          <div className="flex flex-wrap gap-2">
-            {compressionRatios.map(({ value, label }) => (
-              <button
-                key={value}
-                onClick={() =>
-                  toggleSelection(
-                    value,
-                    selectedQualities,
-                    setSelectedQualities
-                  )
-                }
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                  selectedQualities.includes(value)
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                }`}
-              >
-                {label}
-              </button>
-            ))}
+          <div>
+            <div className="flex gap-4">
+              <Input
+                onChange={(e) => setCompressionQuality(e.target.valueAsNumber)}
+                className="w-14 h-8"
+                type="number"
+                value={compressionQuality}
+              />
+              <Slider
+                value={[compressionQuality]}
+                onValueChange={(value) => setCompressionQuality(value[0])}
+                max={100}
+                step={1}
+                className="mb-2"
+              />
+            </div>
+            <div className="text-sm text-muted-foreground mt-2">
+              {getCompressionTip(compressionQuality)}
+            </div>
           </div>
         </div>
         <div className="mb-6">
@@ -379,7 +303,32 @@ export default function Component() {
         >
           <Download className="mr-2 h-4 w-4" /> Download Compressed Images
         </Button>
+        <Button
+          variant="outline"
+          onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+        >
+          Theme
+        </Button>
         <canvas ref={canvasRef} style={{ display: "none" }} />
+      </div>
+      <div className="flex-1 p-6 flex flex-col bg-background">
+        <div className="mt-4">
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleImageUpload}
+            className="hidden"
+            id="image-upload"
+            multiple
+          />
+          <label htmlFor="image-upload">
+            <Button asChild className="w-full">
+              <span>
+                <Upload className="mr-2 h-4 w-4" /> Upload Images
+              </span>
+            </Button>
+          </label>
+        </div>
       </div>
     </div>
   );
