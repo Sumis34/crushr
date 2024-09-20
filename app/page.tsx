@@ -3,10 +3,12 @@
 import { useState, useRef, ChangeEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Upload, Download, Check } from "lucide-react";
+import { Upload, Download, Check, ImageIcon } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { useTheme } from "next-themes";
 import { Input } from "@/components/ui/input";
+import Masonry from "react-masonry-css";
+import { Progress } from "@/components/ui/progress";
 
 const resolutions = [
   { name: "4K", dimensions: "3840 x 2160", value: "4k", aspectRatio: "16/9" },
@@ -69,6 +71,8 @@ export default function Component() {
       compressed: {},
       compressionRatio: 0,
     }));
+    console.log(newImages);
+    
     setImages((prev) => [...prev, ...newImages]);
   };
 
@@ -240,7 +244,7 @@ export default function Component() {
           </div>
         </div>
         <div className="mb-6">
-          <Label className="text-base mb-2 block">Compression Ratios</Label>
+          <Label className="text-base mb-2 block">Quality</Label>
           <div>
             <div className="flex gap-4">
               <Input
@@ -312,6 +316,48 @@ export default function Component() {
         <canvas ref={canvasRef} style={{ display: "none" }} />
       </div>
       <div className="flex-1 p-6 flex flex-col bg-background">
+        <div className="flex-1 border-2 border-dashed border-gray-300 rounded-lg p-4 overflow-y-auto">
+          {images.length > 0 ? (
+            <Masonry
+              breakpointCols={{
+                default: 4,
+                1100: 3,
+                700: 2,
+                500: 1,
+              }}
+              className="flex w-auto"
+              columnClassName="bg-clip-padding px-2"
+            >
+              {images.map((img) => (
+                <div key={img.id} className="relative group mb-4">
+                  <div className="cursor-pointer">
+                    <img
+                      src={img.preview}
+                      className="w-full rounded-lg"
+                    />
+                  </div>
+                  {img.compressionRatio > 0 && (
+                    <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white p-2 rounded-b-lg">
+                      <div className="text-xs mb-1">
+                        Compression: {img.compressionRatio.toFixed(2)}%
+                      </div>
+                      <Progress value={img.compressionRatio} className="h-1" />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </Masonry>
+          ) : (
+            <div className="h-full flex items-center justify-center">
+              <div className="text-center">
+                <ImageIcon className="mx-auto h-12 w-12 text-gray-400" />
+                <p className="mt-1 text-sm text-gray-600">
+                  Upload images to start
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
         <div className="mt-4">
           <input
             type="file"
